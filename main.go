@@ -31,9 +31,11 @@ func main() {
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
 	r.Get("/especialidade", getSpecialty)
 	r.Post("/especialidade", postSpecialty)
 	r.Put("/especialidade/{specialtyId}", putSpecialty)
+	r.Delete("/especialidade/{specialtyId}", deleteSpecialty)
 
 	err = http.ListenAndServe(":8000", r)
 	if err != nil {
@@ -123,6 +125,17 @@ func putSpecialty(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, err = db.Exec("UPDATE specialties SET name = $1, updated_at = NOW() WHERE id = $2", req.Name, specialtyId)
+	if err != nil {
+		log.Printf("não foi possivel executar a query: %v", err)
+		return
+	}
+	json.NewEncoder(rw).Encode(resultOK{OK: true})
+}
+
+func deleteSpecialty(rw http.ResponseWriter, r *http.Request) {
+	specialtyId := chi.URLParam(r, "specialtyId")
+
+	_, err := db.Exec("DELETE FROM specialties WHERE id = $1", specialtyId)
 	if err != nil {
 		log.Printf("não foi possivel executar a query: %v", err)
 		return
