@@ -78,12 +78,12 @@ type resultOK struct {
 	OK bool
 }
 
-type specialtiesCreateRequest struct {
+type specialtiesRequest struct {
 	Name string
 }
 
 func postSpecialty(rw http.ResponseWriter, r *http.Request) {
-	req := specialtiesCreateRequest{}
+	req := specialtiesRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		log.Printf("não foi possivel recuperar os dados: %v", err)
@@ -110,6 +110,22 @@ func postSpecialty(rw http.ResponseWriter, r *http.Request) {
 
 func putSpecialty(rw http.ResponseWriter, r *http.Request) {
 	specialtyId := chi.URLParam(r, "specialtyId")
-
-	rw.Write([]byte(specialtyId))
+	req := specialtiesRequest{}
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		log.Printf("não foi possivel recuperar os dados: %v", err)
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte("bad request"))
+		return
+	}
+	if req.Name == "" {
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	_, err = db.Exec("UPDATE specialties SET name = $1, updated_at = NOW() WHERE id = $2", req.Name, specialtyId)
+	if err != nil {
+		log.Printf("não foi possivel executar a query: %v", err)
+		return
+	}
+	json.NewEncoder(rw).Encode(resultOK{OK: true})
 }
