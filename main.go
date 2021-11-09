@@ -9,6 +9,8 @@ import (
 
 	"module/config"
 
+	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
 	_ "github.com/lib/pq"
 )
 
@@ -27,10 +29,13 @@ func main() {
 		log.Fatalf("erro ao conectar: %v", err)
 	}
 
-	http.Handle("/especialidade", http.HandlerFunc(index))
-	http.Handle("/especialidade-create", http.HandlerFunc(create))
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Get("/especialidade", getSpecialty)
+	r.Post("/especialidade", postSpecialty)
+	r.Put("/especialidade/{specialtyId}", putSpecialty)
 
-	err = http.ListenAndServe(":8000", nil)
+	err = http.ListenAndServe(":8000", r)
 	if err != nil {
 		log.Fatalf("não foi possivel iniciar o servidor: %v", err)
 	}
@@ -43,7 +48,7 @@ type specialties struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func index(rw http.ResponseWriter, r *http.Request) {
+func getSpecialty(rw http.ResponseWriter, r *http.Request) {
 	result := []specialties{} // Retorna array vazia
 	rows, err := db.Query("SELECT * FROM specialties")
 
@@ -77,7 +82,7 @@ type specialtiesCreateRequest struct {
 	Name string
 }
 
-func create(rw http.ResponseWriter, r *http.Request) {
+func postSpecialty(rw http.ResponseWriter, r *http.Request) {
 	req := specialtiesCreateRequest{}
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
@@ -101,4 +106,10 @@ func create(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("não foi possivel fazer o encode: %v", err)
 	}
+}
+
+func putSpecialty(rw http.ResponseWriter, r *http.Request) {
+	specialtyId := chi.URLParam(r, "specialtyId")
+
+	rw.Write([]byte(specialtyId))
 }
